@@ -11,32 +11,15 @@ apiManager.login().then(function (data) {
     var token = data.token;
     var farmerId = data.farmer.id;
     var teamId = data.farmer.team.id;
-    var leeks = [];
 
     console.log("Connecté en tant que " + data.farmer.name);
-    /*
+
     // Enregistrement au tournoi d'éleveur
     apiManager.registerFarmerToTournament(token).then(function () {
         console.log("Enregistrement au tournoi d'éleveur effectué");
     }, function (err) {
         console.error("Enregistrement au tournoi d'éleveur échoué, détails : " + JSON.stringify(err));
     });
-
-    for (var leekProp in data.farmer.leeks) {
-        console.log(leekProp);
-
-        // skip loop if the property is from prototype
-        if (!data.farmer.leeks.hasOwnProperty(leekProp)) continue;
-
-        var leek = data.farmer.leeks[leekProp];
-
-        apiManager.registerLeekToTournament(leek.id, token).then(function (leekId) {
-            console.log("Enregistrement au tournoi de poireau effectué pour " + data.farmer.leeks[leekId].name);
-        }, function (err) {
-            console.error("Enregistrement au tournoi de poireau échoué pour " + data.farmer.leeks[err.leekId].name + ", détails : " + JSON.stringify(err));
-        });
-    }
-
 
     apiManager.getOwnTeamDetails(teamId, token).then(function (team) {
 
@@ -53,16 +36,43 @@ apiManager.login().then(function (data) {
             }
 
         });
-    });*/
+    });
 
-    apiManager.getGarden(token).then(function(garden){
-        if(garden.farmer_fights > 0){
+    apiManager.getGarden(token).then(function (garden) {
+        for (var index in garden.my_compositions) {
+            if (garden.my_compositions[index].fights > 0) {
+                fightManager.doCompoFights(garden.my_compositions[index].id, garden.my_compositions[index].fights, token);
+            }
+        }
+
+        for (var leekProp in garden.solo_fights) {
+            // skip loop if the property is from prototype
+            if (!garden.solo_fights.hasOwnProperty(leekProp)) continue;
+            var count = garden.solo_fights[leekProp];
+            if (count > 0) {
+                fightManager.doLeekFights(leekProp, count, token);
+            }
+        }
+        if (garden.farmer_fights > 0) {
             console.log(garden.farmer_fights + " combat(s) d'éleveur disponible(s)");
-            var results = fightManager.doFarmerFights(1, token);
+            var results = fightManager.doFarmerFights(garden.farmer_fights, token);
         } else {
             console.log("Plus de combat d'éleveur disponibles");
         }
 
+        for (var leekProp in data.farmer.leeks) {
+            console.log(leekProp);
+
+            // skip loop if the property is from prototype
+            if (!data.farmer.leeks.hasOwnProperty(leekProp)) continue;
+
+            var leek = data.farmer.leeks[leekProp];
+            apiManager.registerLeekToTournament(leek.id, token).then(function (leekId) {
+                console.log("Enregistrement au tournoi de poireau effectué pour " + data.farmer.leeks[leekId].name);
+            }, function (err) {
+                console.error("Enregistrement au tournoi de poireau échoué pour " + data.farmer.leeks[err.leekId].name + ", détails : " + JSON.stringify(err));
+            });
+        }
     });
 
     console.log("fin d'exécution du bot (hors promesses)");

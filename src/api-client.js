@@ -16,7 +16,11 @@ module.exports = {
     registerLeekToTournament: registerLeekToTournament,
     registerTeamToTournament: registerTeamToTournament,
     getFarmerGardenOpponentsSync: getFarmerGardenOpponentsSync,
+    getLeekGardenOpponentsSync: getLeekGardenOpponentsSync,
+    getCompoGardenOpponentsSync: getCompoGardenOpponentsSync,
     startFarmerFightSync: startFarmerFightSync,
+    startLeekFightSync: startLeekFightSync,
+    startCompoFightSync: startCompoFightSync,
     getFightSync: getFightSync
 };
 
@@ -26,6 +30,7 @@ function executeGETSyncRequest(Url){
     try {
         var response = syncRequest('GET', Url);
         console.log("réponse : " + JSON.stringify(response));
+        sessionId = cookie.parse(response.headers["set-cookie"][0]).PHPSESSID;
         var body = response.getBody();
         console.log("corps : " + body);
 
@@ -46,6 +51,7 @@ function getToken() {
 
     request.get(config.API.endpoint + setUri, function (error, response, body) {
         console.log("réponse : " + JSON.stringify(response));
+        sessionId = cookie.parse(response.headers["set-cookie"][0]).PHPSESSID;
         /**
          * Exemple de réponse
          * {
@@ -1214,6 +1220,72 @@ function getFarmerGardenOpponentsSync(token) {
     return executeGETSyncRequest(config.API.endpoint + setUri).opponents;
 }
 
+function getLeekGardenOpponentsSync(token, leekId) {
+    var config = configManager.getFullConfig();
+    var setUri = config.API.getGardenLeekOpponentsUri.replace("{token}", token).replace("{leek_id}", leekId);
+
+    console.log("Appel de récupération des adversaires du potager du poireau " + leekId + " : " + config.API.endpoint + setUri);
+    /**
+     * Exemple de réponse :
+     *{
+              "success": true,
+              "opponents": [
+                {
+                  "id": 15360,
+                  "name": "Ness",
+                  "avatar_changed": 0,
+                  "talent": 1161,
+                  "total_level": 820,
+                  "leek_count": 4
+                },
+                {
+                  "id": 41996,
+                  "name": "Achab",
+                  "avatar_changed": 1454680193,
+                  "talent": 1298,
+                  "total_level": 846,
+                  "leek_count": 4
+                },
+                {
+                  "id": 39895,
+                  "name": "JePrefLaSalade",
+                  "avatar_changed": 1448900068,
+                  "talent": 1368,
+                  "total_level": 800,
+                  "leek_count": 4
+                },
+                {
+                  "id": 34852,
+                  "name": "facojoe",
+                  "avatar_changed": 1435085807,
+                  "talent": 1448,
+                  "total_level": 681,
+                  "leek_count": 3
+                },
+                {
+                  "id": 19085,
+                  "name": "tboss",
+                  "avatar_changed": 1413642114,
+                  "talent": 1572,
+                  "total_level": 827,
+                  "leek_count": 4
+                }
+              ]
+            }
+     */
+
+    return executeGETSyncRequest(config.API.endpoint + setUri).opponents;
+}
+
+function getCompoGardenOpponentsSync(token, compoId) {
+    var config = configManager.getFullConfig();
+    var setUri = config.API.getGardenCompositionOpponentsUri.replace("{token}", token).replace("{composition_id}", compoId);
+
+    console.log("Appel de récupération des adversaires du potager de la compo " + compoId + " : " + config.API.endpoint + setUri);
+
+    return executeGETSyncRequest(config.API.endpoint + setUri).opponents;
+}
+
 function startFarmerFightSync(opponentId, token) {
     var config = configManager.getFullConfig();
     var setUri = config.API.startFarmerGardenFightUri.replace("{token}", token).replace("{target_id}", opponentId);
@@ -1223,7 +1295,59 @@ function startFarmerFightSync(opponentId, token) {
     try {
         var response = syncRequest('POST', config.API.endpoint + setUri, {
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'Cookie': cookieString,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: reqBody
+        });
+        console.log("réponse : " + JSON.stringify(response));
+        var body = response.getBody();
+        console.log("corps : " + body);
+
+        return JSON.parse(body).fight;
+    } catch (ex) {
+        console.error(ex);
+        throw ex;
+    }
+}
+
+function startLeekFightSync(leekId, opponentId, token) {
+    var config = configManager.getFullConfig();
+    var setUri = config.API.startSoloGardenFightUri.replace("{token}", token).replace("{target_id}", opponentId).replace("{leek_id}", leekId);
+    var reqBody = "leek_id={leek_id}&target_id={target_id}&token={token}".replace("{token}", token).replace("{target_id}", opponentId).replace("{leek_id}", leekId);
+    var cookieString = 'PHPSESSID={SessionId}; token={token}'.replace("{token}", token).replace('{SessionId}', sessionId);
+    console.log("Appel de lancement d'un combat de poireau : \r\n" + config.API.endpoint + setUri + "\r\n body : " + reqBody + "\r\n cookies : " + cookieString);
+    try {
+        var response = syncRequest('POST', config.API.endpoint + setUri, {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'Cookie': cookieString,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: reqBody
+        });
+        console.log("réponse : " + JSON.stringify(response));
+        var body = response.getBody();
+        console.log("corps : " + body);
+
+        return JSON.parse(body).fight;
+    } catch (ex) {
+        console.error(ex);
+        throw ex;
+    }
+}
+
+function startCompoFightSync(compoId, opponentId, token) {
+    var config = configManager.getFullConfig();
+    var setUri = config.API.startCompoGardenFightUri.replace("{token}", token).replace("{target_id}", opponentId).replace("{composition_id}", compoId);
+    var reqBody = "composition_id={composition_id}&target_id={target_id}&token={token}".replace("{token}", token).replace("{target_id}", opponentId).replace("{composition_id}", compoId);
+    var cookieString = 'PHPSESSID={SessionId}; token={token}'.replace("{token}", token).replace('{SessionId}', sessionId);
+    console.log("Appel de lancement d'un combat de composition : \r\n" + config.API.endpoint + setUri + "\r\n body : " + reqBody + "\r\n cookies : " + cookieString);
+    try {
+        var response = syncRequest('POST', config.API.endpoint + setUri, {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                 'Cookie': cookieString,
                 'X-Requested-With': 'XMLHttpRequest'
             },
