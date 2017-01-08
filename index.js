@@ -45,17 +45,28 @@ apiManager.login().then(function (data) {
             }
         }
 
-        for (var leekProp in garden.solo_fights) {
-            // skip loop if the property is from prototype
-            if (!garden.solo_fights.hasOwnProperty(leekProp)) continue;
-            var count = garden.solo_fights[leekProp];
-            if (count > 0) {
-                fightManager.doLeekFights(leekProp, count, token);
+        // MAJ Leekwars.com v1.94
+        // Un nombre de 50 combats est disponible chaque jour, à répartir entre ses poireaux et les combat d'éleveur
+        // Répartition de façon équitable entre les poireaux (qui en ont besoin lvl < 301) et éléveurs
+        var leeksNeedingXpCount = 0;
+        for (var leekProp in data.farmer.leeks) {
+            if (data.farmer.leeks[leekProp].level && data.farmer.leeks[leekProp].level < 301) {
+                leeksNeedingXpCount++;
             }
         }
-        if (garden.farmer_fights > 0) {
-            console.log(garden.farmer_fights + " combat(s) d'éleveur disponible(s)");
-            var results = fightManager.doFarmerFights(garden.farmer_fights, token);
+
+        var quota = Math.ceil(garden.fights / (leeksNeedingXpCount + 1));
+        console.log("Quota de combat par leek ou en mode éléveur = " + quota);
+
+        for (var leekProp in data.farmer.leeks) {
+
+            if (quota > 0 && data.farmer.leeks[leekProp] && data.farmer.leeks[leekProp].level < 301) {
+                fightManager.doLeekFights(leekProp, quota, token);
+            }
+        }
+
+        if (quota > 0) {
+            var results = fightManager.doFarmerFights(quota, token);
         } else {
             console.log("Plus de combat d'éleveur disponibles");
         }
